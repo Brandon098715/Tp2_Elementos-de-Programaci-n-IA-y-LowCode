@@ -1,0 +1,470 @@
+{
+  "id": "tp2MatchingIA001",
+  "name": "02 - Matching + IA",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 02 · Matching + IA\nCada 15 minutos (o con **POST /webhook/procesar-ia**) busca resultados con score ≥ **UMBRAL_IA** y, si todavía no tienen recomendación, la genera con la IA.\n\nUn error de la IA se **registra** y el flujo sigue con el próximo resultado.",
+        "width": 560,
+        "height": 200
+      },
+      "id": "aeee091a-682c-4c68-9802-85af9529171f",
+      "name": "Nota f34c",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "e3d3a1a4-3927-45d1-88b2-39532135a471",
+      "name": "Cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "procesar-ia",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "697aa5ef-207d-447d-8f2e-a94256904091",
+      "name": "Webhook manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        120
+      ],
+      "webhookId": "22ea4d80-2875-4b98-bf60-26e97bb2c7a4"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.API_URL }}/matching/resultados",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "min_score",
+              "value": "={{ $env.UMBRAL_IA }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "169d419d-82c2-4fa6-a061-e76fe6abe847",
+      "name": "Obtener resultados (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "1be97406-3b2b-4fc3-9af4-271b92ee3ace",
+      "name": "Recorrer resultados",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        220,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2232e09d-733e-41e5-864f-1c1f22418a32",
+              "leftValue": "={{ $json.id !== undefined && $json.tiene_recomendacion === false && ($json.faltantes || []).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "8b4b60c2-a470-47d3-9b9b-9aa057b2ace1",
+      "name": "¿Necesita recomendación?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/recomendaciones/{{ $json.id }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "id": "403e1e92-6a4f-4d49-b78f-e647b669be71",
+      "name": "Generar recomendación IA (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        60
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aa163da5-bcf5-4e6f-bab3-569c964632f6",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 201,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "b55cb1f8-a693-4b53-b31c-a363c68a0419",
+      "name": "¿Respuesta OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a46d59c6-551b-4004-97fb-ad29e9714e00",
+              "name": "estado_proceso",
+              "value": "generada",
+              "type": "string"
+            },
+            {
+              "id": "871eceab-2298-4c8d-a5aa-ea5b50c00f3c",
+              "name": "resultado_id",
+              "value": "={{ $('Recorrer resultados').item.json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "71634d88-3504-4030-bbe2-34caeea7908b",
+              "name": "estudiante",
+              "value": "={{ $('Recorrer resultados').item.json.estudiante_nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "c98a098e-c91f-444b-a22d-ffd6c77a94d9",
+              "name": "oferta",
+              "value": "={{ $('Recorrer resultados').item.json.oferta_titulo }}",
+              "type": "string"
+            },
+            {
+              "id": "487587ba-88f8-4f81-a1a3-703b66864044",
+              "name": "recomendacion_id",
+              "value": "={{ $json.body.id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "06f2c45d-5619-472e-a78b-6bbd246a010e",
+      "name": "Registrar éxito",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "81618d38-e03c-41d6-b4ba-0f89d3fe8e98",
+              "name": "estado_proceso",
+              "value": "error",
+              "type": "string"
+            },
+            {
+              "id": "3f3eaeaa-600e-46dc-b4d4-632dd3f0461b",
+              "name": "resultado_id",
+              "value": "={{ $('Recorrer resultados').item.json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "66828449-58b7-4d54-ab59-851627719fab",
+              "name": "estudiante",
+              "value": "={{ $('Recorrer resultados').item.json.estudiante_nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "695e524e-dfc9-449a-96c3-d476c0db71d1",
+              "name": "codigo",
+              "value": "={{ $json.statusCode || 'sin respuesta' }}",
+              "type": "string"
+            },
+            {
+              "id": "bd3ca375-88e7-488f-8017-c57758ac4753",
+              "name": "detalle",
+              "value": "={{ $json.body?.detalle || $json.error?.message || 'Error desconocido' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "621ba674-b9b6-42e7-9696-ab1146cd87d2",
+      "name": "Registrar fallo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f81c77d6-797b-42b2-b3cd-95c5636af3c3",
+              "name": "estado_proceso",
+              "value": "omitido",
+              "type": "string"
+            },
+            {
+              "id": "62889c97-225f-4b3b-b5e5-c917645ff727",
+              "name": "resultado_id",
+              "value": "={{ $json.id }}",
+              "type": "number"
+            },
+            {
+              "id": "55dd1b33-3d30-42d2-91bf-2fd298167fbb",
+              "name": "motivo",
+              "value": "={{ $json.tiene_recomendacion ? 'ya tiene recomendación' : 'sin competencias faltantes' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4a6724d3-e1dd-4c58-a1b0-3e02cb49ff3e",
+      "name": "Registrar omitido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cuenta cuántos resultados se procesaron en cada estado.\nconst items = $input.all().map((i) => i.json);\nconst contar = (estado) => items.filter((i) => i.estado_proceso === estado).length;\n\nreturn [{\n  json: {\n    procesados: items.length,\n    generadas: contar('generada'),\n    omitidos: contar('omitido'),\n    errores: contar('error'),\n    detalle_errores: items.filter((i) => i.estado_proceso === 'error'),\n    finalizado_en: new Date().toISOString(),\n  },\n}];\n"
+      },
+      "id": "dddf25b2-5ccd-4307-8c88-c524a576aec4",
+      "name": "Resumen del procesamiento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -120
+      ]
+    }
+  ],
+  "connections": {
+    "Cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Obtener resultados (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook manual": {
+      "main": [
+        [
+          {
+            "node": "Obtener resultados (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener resultados (API)": {
+      "main": [
+        [
+          {
+            "node": "Recorrer resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recorrer resultados": {
+      "main": [
+        [
+          {
+            "node": "Resumen del procesamiento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Necesita recomendación?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Necesita recomendación?": {
+      "main": [
+        [
+          {
+            "node": "Generar recomendación IA (API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar omitido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar recomendación IA (API)": {
+      "main": [
+        [
+          {
+            "node": "¿Respuesta OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Respuesta OK?": {
+      "main": [
+        [
+          {
+            "node": "Registrar éxito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar fallo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar éxito": {
+      "main": [
+        [
+          {
+            "node": "Recorrer resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar fallo": {
+      "main": [
+        [
+          {
+            "node": "Recorrer resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar omitido": {
+      "main": [
+        [
+          {
+            "node": "Recorrer resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

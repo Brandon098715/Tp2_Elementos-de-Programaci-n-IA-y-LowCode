@@ -1,0 +1,237 @@
+{
+  "id": "tp2ReporteDiario",
+  "name": "03 - Reporte y notificaciones",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 03 · Reporte y notificaciones\nTodos los días a las 9:00 (o con **GET /webhook/reporte-diario**) consulta el resumen. Si hay recomendaciones de IA **pendientes**, avisa por email al revisor; si no, manda un informe breve a coordinación.\n\nLos emails llegan a **Mailpit**: http://localhost:8025",
+        "width": 560,
+        "height": 200
+      },
+      "id": "f1f9aed0-b4bb-42e1-92f7-0e1f5008384a",
+      "name": "Nota 8668",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "28afc047-66a9-4527-87ef-ec82f758709d",
+      "name": "Todos los días 9:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -220,
+        -60
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reporte-diario",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "0342c7b6-ffb0-4aca-8571-38b0afa1b493",
+      "name": "Webhook manual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        120
+      ],
+      "webhookId": "7c5817fd-d693-4af5-907e-5bc91850ca19"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.API_URL }}/reportes/resumen",
+        "options": {}
+      },
+      "id": "189da3f5-a08e-4583-a5db-21ffbc31892c",
+      "name": "Obtener resumen (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el asunto y el cuerpo HTML del email a partir de GET /reportes/resumen.\nconst r = $input.first().json;\nconst t = r.totales;\nconst pendientes = r.recomendaciones_pendientes;\n\nconst filasOfertas = r.score_promedio_por_oferta\n  .map((o) => `<tr><td>#${o.oferta_id} ${o.titulo}</td><td>${o.estado}</td>` +\n              `<td>${o.score_promedio ?? '—'}</td><td>${o.cantidad_resultados}</td></tr>`)\n  .join('');\n\nconst faltantes = r.competencias_mas_faltantes.slice(0, 5)\n  .map((f) => `<li>${f.skill}: ${f.cantidad}</li>`).join('');\n\nconst html = `\n<h2>Reporte diario — Plataforma de vinculación</h2>\n<p><b>Recomendaciones de IA pendientes de revisión: ${pendientes}</b></p>\n${pendientes > 0\n  ? '<p>Hay recomendaciones generadas por IA que necesitan revisión humana. ' +\n    'Revisalas en <a href=\"http://localhost:8501\">la interfaz</a> (sección Recomendaciones IA).</p>'\n  : '<p>No hay recomendaciones pendientes. ¡Todo al día!</p>'}\n<h3>Totales</h3>\n<ul>\n  <li>Estudiantes: ${t.estudiantes}</li>\n  <li>Ofertas abiertas: ${t.ofertas_abiertas} (cerradas: ${t.ofertas_cerradas})</li>\n  <li>Resultados de matching: ${t.resultados_matching}</li>\n  <li>Recomendaciones: aprobadas ${r.recomendaciones_por_estado.aprobada},\n      rechazadas ${r.recomendaciones_por_estado.rechazada}</li>\n</ul>\n<h3>Score promedio por oferta (calculado por reglas)</h3>\n<table border=\"1\" cellpadding=\"4\" cellspacing=\"0\">\n  <tr><th>Oferta</th><th>Estado</th><th>Score promedio</th><th>Resultados</th></tr>\n  ${filasOfertas}\n</table>\n<h3>Competencias más faltantes</h3>\n<ul>${faltantes || '<li>Sin datos</li>'}</ul>\n`;\n\nreturn [{\n  json: {\n    pendientes,\n    asunto: pendientes > 0\n      ? `[TP2] ${pendientes} recomendación(es) de IA pendiente(s) de revisión`\n      : '[TP2] Reporte diario: sin recomendaciones pendientes',\n    html,\n  },\n}];\n"
+      },
+      "id": "adbe53b9-97e9-4497-9e6f-bf58f24ab039",
+      "name": "Armar email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7a649291-59a0-441b-ba09-76529ffe3f4f",
+              "leftValue": "={{ $json.pendientes }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "957ccb4f-f285-42a9-a165-415a2bbb0272",
+      "name": "¿Hay pendientes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@tp2-vinculacion.local",
+        "toEmail": "revisor@example.com",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "d73a1fc2-f543-40b9-a840-3d9e8ab810cc",
+      "name": "Email al revisor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        680,
+        -60
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "tp2SmtpMailpit01",
+          "name": "SMTP Mailpit (pruebas)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@tp2-vinculacion.local",
+        "toEmail": "coordinacion@example.com",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "598621ff-0a39-486a-b4e3-0f6a29e4dbd9",
+      "name": "Email sin pendientes",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        680,
+        140
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "tp2SmtpMailpit01",
+          "name": "SMTP Mailpit (pruebas)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todos los días 9:00": {
+      "main": [
+        [
+          {
+            "node": "Obtener resumen (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook manual": {
+      "main": [
+        [
+          {
+            "node": "Obtener resumen (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener resumen (API)": {
+      "main": [
+        [
+          {
+            "node": "Armar email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar email": {
+      "main": [
+        [
+          {
+            "node": "¿Hay pendientes?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay pendientes?": {
+      "main": [
+        [
+          {
+            "node": "Email al revisor",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email sin pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}

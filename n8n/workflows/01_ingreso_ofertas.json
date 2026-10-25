@@ -1,0 +1,300 @@
+{
+  "id": "tp2IngresoOferta",
+  "name": "01 - Ingreso de ofertas",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 01 · Ingreso de ofertas\nRecibe una oferta por **POST /webhook/nueva-oferta**, la valida, la crea en la API y calcula el matching (reglas).\n\nResponde **201** con el ranking o **400/422** con el error.",
+        "width": 520,
+        "height": 180
+      },
+      "id": "9acddaff-e437-4e7e-8ac7-b248c308b087",
+      "name": "Nota 6111",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nueva-oferta",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f4bdeb0f-403d-444f-b5f9-aed2066d018e",
+      "name": "Webhook nueva oferta",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "21040432-9533-45d3-9417-207bb28f3840"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Toma el JSON recibido por el webhook y lo deja listo para la API.\n// También arma la lista de errores para la condición siguiente.\nconst body = $input.first().json.body || {};\nconst texto = (v) => (typeof v === 'string' ? v.trim() : '');\n\nconst requisitos = Array.isArray(body.requisitos) ? body.requisitos : [];\n\nconst oferta = {\n  titulo: texto(body.titulo),\n  empresa: texto(body.empresa),\n  modalidad: texto(body.modalidad).toLowerCase(),\n  descripcion: texto(body.descripcion),\n  requisitos: requisitos\n    .map((r) => ({\n      skill: texto(r.skill),\n      nivel_minimo: Number(r.nivel_minimo ?? 1),\n      tipo: (texto(r.tipo) || 'obligatoria').toLowerCase(),\n    }))\n    .filter((r) => r.skill !== ''),   // descarta requisitos sin nombre\n};\n\nconst errores = [];\nif (!oferta.titulo) errores.push(\"Falta el campo 'titulo'.\");\nif (!oferta.empresa) errores.push(\"Falta el campo 'empresa'.\");\nif (!oferta.modalidad) errores.push(\"Falta el campo 'modalidad'.\");\nif (oferta.requisitos.length === 0) errores.push('La oferta debe tener al menos un requisito.');\n\nreturn [{ json: { oferta, errores, valido: errores.length === 0 } }];\n"
+      },
+      "id": "bd174d01-5c6b-4e94-b871-50b8c89212b2",
+      "name": "Normalizar datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "77f79698-5704-43cd-a9b4-1bf38e0716b7",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "86a39c85-322d-4bae-abc6-f0cc8728442a",
+      "name": "¿Datos completos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/ofertas",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.oferta) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fd5adf82-4850-4487-a4c2-6a7d2542947d",
+      "name": "Crear oferta (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "500cfdcf-457b-458d-a2c3-7182a20dbc9a",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 201,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "b9aabc92-c666-43b7-b72f-f699f6f8d175",
+      "name": "¿Oferta creada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.API_URL }}/matching/ofertas/{{ $json.body.id }}",
+        "options": {}
+      },
+      "id": "2fb91465-8e98-4db9-b1eb-6e0b9ac7ccc0",
+      "name": "Calcular matching (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ mensaje: 'Oferta creada y matching calculado', oferta_id: $json.oferta_id, oferta: $json.oferta_titulo, origen: $json.origen, total_estudiantes: $json.total_estudiantes, ranking: $json.ranking.slice(0, 5).map(r => ({ estudiante: r.estudiante_nombre, score: r.score, clasificacion: r.clasificacion })) }) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "de5aa88d-640c-4a84-a96d-f2774a453280",
+      "name": "Responder 201 con ranking",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'La API rechazó la oferta', codigo: $json.statusCode, detalle: $json.body.detalle }) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "e14c045d-0d0d-4ce7-a02d-5c054f277310",
+      "name": "Responder error de la API",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: 'Datos incompletos', detalles: $json.errores }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "88474283-d203-4817-8b6d-bce112a29cd1",
+      "name": "Responder 400 datos incompletos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook nueva oferta": {
+      "main": [
+        [
+          {
+            "node": "Normalizar datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar datos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos completos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos completos?": {
+      "main": [
+        [
+          {
+            "node": "Crear oferta (API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 400 datos incompletos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear oferta (API)": {
+      "main": [
+        [
+          {
+            "node": "¿Oferta creada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Oferta creada?": {
+      "main": [
+        [
+          {
+            "node": "Calcular matching (API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error de la API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular matching (API)": {
+      "main": [
+        [
+          {
+            "node": "Responder 201 con ranking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
+  },
+  "active": false,
+  "pinData": {},
+  "tags": []
+}
