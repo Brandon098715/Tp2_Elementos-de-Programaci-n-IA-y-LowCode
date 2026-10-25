@@ -1,16 +1,26 @@
-"""Endpoints de recomendaciones generadas por IA (origen 'ia') y su revisión humana.
-
-La generación (POST /recomendaciones/{resultado_id}) se agrega en la Fase 4.
-"""
+"""Endpoints de recomendaciones generadas por IA (origen 'ia') y su revisión humana."""
 
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 
 from api.schemas import RecomendacionSalida, RevisionEntrada
-from core import database
+from core import database, ia_service
 
 router = APIRouter(prefix="/recomendaciones", tags=["Recomendaciones (IA)"])
+
+
+@router.post("/{resultado_id}", response_model=RecomendacionSalida,
+             status_code=status.HTTP_201_CREATED,
+             summary="Generar con IA una recomendación para un resultado de matching",
+             responses={404: {"description": "El resultado no existe"},
+                        409: {"description": "El resultado no tiene competencias faltantes"},
+                        502: {"description": "La IA respondió algo inválido (2 intentos)"},
+                        503: {"description": "Servicio de IA no disponible"}})
+def generar_recomendacion(resultado_id: int):
+    """Usa las competencias faltantes **ya calculadas por reglas** para pedirle a la IA
+    recomendaciones de formación. Se guarda con estado `pendiente_revision`."""
+    return ia_service.generar_y_guardar(resultado_id)
 
 
 @router.get("", response_model=list[RecomendacionSalida], summary="Listar recomendaciones de IA")
