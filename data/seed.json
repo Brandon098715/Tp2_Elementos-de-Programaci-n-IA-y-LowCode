@@ -1,0 +1,183 @@
+{
+  "_nota": "Datos ficticios para demostración. Nombres, emails y empresas son inventados.",
+  "estudiantes": [
+    {
+      "nombre": "Ana Gómez",
+      "email": "ana.gomez@example.com",
+      "carrera": "Licenciatura en Sistemas",
+      "anio_cursada": 4,
+      "modalidad_preferida": "hibrida",
+      "competencias": [
+        {"skill": "Python", "nivel": 4},
+        {"skill": "SQL", "nivel": 3},
+        {"skill": "Git", "nivel": 3},
+        {"skill": "FastAPI", "nivel": 2},
+        {"skill": "Docker", "nivel": 1},
+        {"skill": "Inglés", "nivel": 3}
+      ]
+    },
+    {
+      "nombre": "Bruno Díaz",
+      "email": "bruno.diaz@example.com",
+      "carrera": "Ingeniería Informática",
+      "anio_cursada": 3,
+      "modalidad_preferida": "remota",
+      "competencias": [
+        {"skill": "Python", "nivel": 2},
+        {"skill": "SQL", "nivel": 2},
+        {"skill": "Excel", "nivel": 4},
+        {"skill": "Estadística", "nivel": 3},
+        {"skill": "Power BI", "nivel": 3}
+      ]
+    },
+    {
+      "nombre": "Carla Méndez",
+      "email": "carla.mendez@example.com",
+      "carrera": "Tecnicatura en Programación",
+      "anio_cursada": 2,
+      "modalidad_preferida": "presencial",
+      "competencias": [
+        {"skill": "JavaScript", "nivel": 4},
+        {"skill": "HTML", "nivel": 4},
+        {"skill": "CSS", "nivel": 3},
+        {"skill": "React", "nivel": 2},
+        {"skill": "Git", "nivel": 2}
+      ]
+    },
+    {
+      "nombre": "Diego Fernández",
+      "email": "diego.fernandez@example.com",
+      "carrera": "Licenciatura en Sistemas",
+      "anio_cursada": 5,
+      "modalidad_preferida": "remota",
+      "competencias": [
+        {"skill": "Python", "nivel": 5},
+        {"skill": "Machine Learning", "nivel": 4},
+        {"skill": "Estadística", "nivel": 4},
+        {"skill": "SQL", "nivel": 3},
+        {"skill": "Inglés", "nivel": 4}
+      ]
+    },
+    {
+      "nombre": "Elena Ruiz",
+      "email": "elena.ruiz@example.com",
+      "carrera": "Licenciatura en Ciencia de Datos",
+      "anio_cursada": 3,
+      "modalidad_preferida": "hibrida",
+      "competencias": [
+        {"skill": "SQL", "nivel": 4},
+        {"skill": "Excel", "nivel": 3},
+        {"skill": "Estadística", "nivel": 2},
+        {"skill": "Python", "nivel": 1},
+        {"skill": "Comunicación", "nivel": 4}
+      ]
+    },
+    {
+      "nombre": "Facundo López",
+      "email": "facundo.lopez@example.com",
+      "carrera": "Tecnicatura en Programación",
+      "anio_cursada": 1,
+      "modalidad_preferida": "presencial",
+      "competencias": [
+        {"skill": "HTML", "nivel": 2},
+        {"skill": "CSS", "nivel": 2},
+        {"skill": "JavaScript", "nivel": 1},
+        {"skill": "Comunicación", "nivel": 3}
+      ]
+    },
+    {
+      "nombre": "Gabriela Torres",
+      "email": "gabriela.torres@example.com",
+      "carrera": "Ingeniería Informática",
+      "anio_cursada": 4,
+      "modalidad_preferida": "presencial",
+      "competencias": [
+        {"skill": "Linux", "nivel": 3},
+        {"skill": "Testing", "nivel": 3},
+        {"skill": "SQL", "nivel": 2},
+        {"skill": "Inglés", "nivel": 2},
+        {"skill": "Git", "nivel": 2}
+      ]
+    },
+    {
+      "nombre": "Hernán Sosa",
+      "email": "hernan.sosa@example.com",
+      "carrera": "Licenciatura en Sistemas",
+      "anio_cursada": 2,
+      "modalidad_preferida": "remota",
+      "competencias": [
+        {"skill": "Java", "nivel": 3},
+        {"skill": "Git", "nivel": 1},
+        {"skill": "Excel", "nivel": 2},
+        {"skill": "Inglés", "nivel": 1}
+      ]
+    }
+  ],
+  "ofertas": [
+    {
+      "titulo": "Desarrollador/a Backend Python Jr",
+      "empresa": "TechNova SRL",
+      "modalidad": "hibrida",
+      "descripcion": "Desarrollo y mantenimiento de APIs REST en Python.",
+      "requisitos": [
+        {"skill": "Python", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "SQL", "nivel_minimo": 2, "tipo": "obligatoria"},
+        {"skill": "Git", "nivel_minimo": 2, "tipo": "obligatoria"},
+        {"skill": "FastAPI", "nivel_minimo": 2, "tipo": "deseable"},
+        {"skill": "Docker", "nivel_minimo": 1, "tipo": "deseable"}
+      ]
+    },
+    {
+      "titulo": "Analista de Datos Trainee",
+      "empresa": "DataSur SA",
+      "modalidad": "remota",
+      "descripcion": "Armado de reportes y tableros a partir de bases de datos comerciales.",
+      "requisitos": [
+        {"skill": "SQL", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "Excel", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "Estadística", "nivel_minimo": 2, "tipo": "obligatoria"},
+        {"skill": "Python", "nivel_minimo": 2, "tipo": "deseable"},
+        {"skill": "Power BI", "nivel_minimo": 2, "tipo": "deseable"}
+      ]
+    },
+    {
+      "titulo": "Desarrollador/a Frontend",
+      "empresa": "Pixel Andino",
+      "modalidad": "presencial",
+      "descripcion": "Maquetado y desarrollo de interfaces web.",
+      "requisitos": [
+        {"skill": "JavaScript", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "HTML", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "CSS", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "React", "nivel_minimo": 2, "tipo": "deseable"},
+        {"skill": "Git", "nivel_minimo": 2, "tipo": "deseable"}
+      ]
+    },
+    {
+      "titulo": "Soporte Técnico y QA",
+      "empresa": "Servicios Delta",
+      "modalidad": "presencial",
+      "descripcion": "Pruebas de software y soporte a usuarios internos.",
+      "requisitos": [
+        {"skill": "Testing", "nivel_minimo": 2, "tipo": "obligatoria"},
+        {"skill": "Linux", "nivel_minimo": 2, "tipo": "obligatoria"},
+        {"skill": "SQL", "nivel_minimo": 1, "tipo": "deseable"},
+        {"skill": "Inglés", "nivel_minimo": 2, "tipo": "deseable"},
+        {"skill": "Comunicación", "nivel_minimo": 3, "tipo": "deseable"}
+      ]
+    },
+    {
+      "titulo": "Pasante de Machine Learning",
+      "empresa": "Neurona Labs",
+      "modalidad": "remota",
+      "descripcion": "Entrenamiento y evaluación de modelos predictivos.",
+      "requisitos": [
+        {"skill": "Python", "nivel_minimo": 4, "tipo": "obligatoria"},
+        {"skill": "Machine Learning", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "Estadística", "nivel_minimo": 3, "tipo": "obligatoria"},
+        {"skill": "SQL", "nivel_minimo": 2, "tipo": "deseable"},
+        {"skill": "Inglés", "nivel_minimo": 3, "tipo": "deseable"}
+      ]
+    }
+  ]
+}
