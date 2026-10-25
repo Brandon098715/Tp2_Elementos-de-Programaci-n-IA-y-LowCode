@@ -1,0 +1,25 @@
+# Secretos y configuración local
+.env
+
+# Base de datos SQLite (se genera al ejecutar)
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Datos de n8n (volumen local)
+n8n_data/
+
+# Editores / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

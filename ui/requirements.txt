@@ -1,0 +1,5 @@
+# Dependencias de la interfaz Streamlit. Las usa ui/Dockerfile.
+streamlit>=1.45
+pandas>=2.2
+requests>=2.32
+python-dotenv>=1.0
