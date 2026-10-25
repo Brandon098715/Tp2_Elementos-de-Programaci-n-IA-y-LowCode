@@ -1,0 +1,101 @@
+# Docker Compose — levanta todo el sistema junto.
+#
+#   docker compose up -d --build     iniciar (y reconstruir si cambió el código)
+#   docker compose ps                ver el estado de los servicios
+#   docker compose logs -f api       ver los logs de un servicio
+#   docker compose restart api       reiniciar un servicio
+#   docker compose down              detener y borrar los contenedores (los datos quedan)
+#
+# Los valores ${VARIABLE:-por_defecto} se leen del archivo .env de la raíz.
+# Ollama NO corre en Docker: corre en la máquina (host) y los contenedores
+# lo acceden en http://host.docker.internal:11434
+
+name: tp2-vinculacion
+
+services:
+  # ---------------------------------------------------------------- API
+  api:
+    build:
+      context: .                  # raíz del proyecto (la API necesita core/)
+      dockerfile: api/Dockerfile
+    container_name: vinculacion-api
+    ports:
+      - "8000:8000"
+    environment:
+      DB_PATH: data/vinculacion.db
+      OLLAMA_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      OLLAMA_TIMEOUT: ${OLLAMA_TIMEOUT:-120}
+      UMBRAL_IA: ${UMBRAL_IA:-50}
+    volumes:
+      - ./data:/app/data          # la base SQLite queda en la carpeta data/ del proyecto
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # necesario en Linux para llegar a Ollama
+    healthcheck:
+      # python:3.11-slim no trae curl, así que usamos Python para consultar /health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - vinculacion
+
+  # ---------------------------------------------------------------- Interfaz
+  ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    container_name: vinculacion-ui
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000    # dentro de la red de Docker la API se llama "api"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vinculacion
+
+  # ---------------------------------------------------------------- n8n
+  n8n:
+    image: n8nio/n8n:2.44.6
+    container_name: vinculacion-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      GENERIC_TIMEZONE: America/Argentina/Buenos_Aires
+      TZ: America/Argentina/Buenos_Aires
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      # Permite que los workflows lean estas variables con {{ $env.API_URL }}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      API_URL: http://api:8000
+      UMBRAL_IA: ${UMBRAL_IA:-50}
+    volumes:
+      - n8n_data:/home/node/.n8n            # workflows y credenciales de n8n
+      - ./n8n:/import:ro                    # workflows JSON, credencial SMTP y script de importación
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vinculacion
+
+  # ---------------------------------------------------------------- Email de prueba
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    container_name: vinculacion-mailpit
+    ports:
+      - "8025:8025"   # bandeja web: http://localhost:8025
+      - "1025:1025"   # servidor SMTP falso (n8n envía acá)
+    restart: unless-stopped
+    networks:
+      - vinculacion
+
+volumes:
+  n8n_data:
+
+networks:
+  vinculacion:
